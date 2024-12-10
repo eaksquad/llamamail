@@ -10,39 +10,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      {
-        name: 'srcbook-error-reporter',
-        transform(src: string, id: string) {
-          if (id === '/app/src/main.tsx') {
-            return `
-              ${src}
-              if (process.env.NODE_ENV === 'development') {
-                if (import.meta.hot) {
-                  import.meta.hot.on('vite:error', (data) => {
-                    if (window.parent) {
-                      window.parent.postMessage({ type: 'vite:hmr:error', data }, '*');
-                    }
-                  });
-                  import.meta.hot.on('vite:beforeUpdate', (data) => {
-                    if (window.parent) {
-                      window.parent.postMessage({ type: 'vite:hmr:beforeUpdate', data }, '*');
-                    }
-                  });
-                  import.meta.hot.on('vite:afterUpdate', (data) => {
-                    if (window.parent) {
-                      window.parent.postMessage({ type: 'vite:hmr:afterUpdate', data }, '*');
-                    }
-                  });
-                }
-              }
-            `;
-          }
-          return src;
-        }
-      }
     ],
     define: {
-      // Expose only necessary environment variables
+      // Use the new environment variable name
       'import.meta.env.VITE_GROQ_API_KEY': JSON.stringify(env.GROQ_API_KEY || '')
     },
     server: {
