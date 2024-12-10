@@ -169,6 +169,8 @@ function App() {
                 <ResponseOptions 
                   tone={tone}
                   setTone={setTone}
+                  model={model}
+                  setModel={setModel}
                 />
 
                 <button

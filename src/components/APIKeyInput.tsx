@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Key, Save } from 'lucide-react'
 
-export function APIKeyInput() {
+interface APIKeyInputProps {
+  hasApiKey: boolean;
+  setHasApiKey: (value: boolean) => void;
+}
+
+export function APIKeyInput({ hasApiKey, setHasApiKey }: APIKeyInputProps) {
   const [apiKey, setApiKey] = useState('')
   const [isSaved, setIsSaved] = useState(false)
   const [isEnvKey, setIsEnvKey] = useState(false)
@@ -13,20 +18,23 @@ export function APIKeyInput() {
     if (savedKey) {
       setApiKey(savedKey)
       setIsSaved(true)
+      setHasApiKey(true)
     } else if (envKey) {
       setApiKey(envKey)
       setIsSaved(true)
       setIsEnvKey(true)
+      setHasApiKey(true)
       // Store env key in localStorage for consistency
       localStorage.setItem('grog_api_key', envKey)
     }
-  }, [])
+  }, [setHasApiKey])
 
   const handleSaveKey = () => {
     if (apiKey.trim()) {
       localStorage.setItem('grog_api_key', apiKey.trim())
       setIsSaved(true)
       setIsEnvKey(false)
+      setHasApiKey(true)
     }
   }
 
