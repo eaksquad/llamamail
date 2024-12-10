@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Key, Save } from 'lucide-react'
+import { Key, Save, Check } from 'lucide-react'
 
 interface APIKeyInputProps {
   hasApiKey: boolean;
@@ -24,7 +24,6 @@ export function APIKeyInput({ hasApiKey, setHasApiKey }: APIKeyInputProps) {
       setIsSaved(true)
       setIsEnvKey(true)
       setHasApiKey(true)
-      // Store env key in localStorage for consistency
       localStorage.setItem('grog_api_key', envKey)
     }
   }, [setHasApiKey])
@@ -41,43 +40,49 @@ export function APIKeyInput({ hasApiKey, setHasApiKey }: APIKeyInputProps) {
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">
-        Grog.com API Key
+        Groq API Key {hasApiKey && <span className="text-green-600 ml-2">(Active)</span>}
       </label>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Key className="absolute top-2.5 left-3 w-5 h-5 text-gray-400" />
-          <input
-            type="password"
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter your API key"
-            value={apiKey}
-            onChange={(e) => {
-              setApiKey(e.target.value)
-              setIsSaved(false)
-              setIsEnvKey(false)
-            }}
-          />
-        </div>
-        <button
-          onClick={handleSaveKey}
+      
+      <div className="relative">
+        <Key className="absolute top-3 left-3 w-5 h-5 text-gray-400" />
+        <input
+          type="password"
+          placeholder={hasApiKey ? '••••••••••••••••' : 'Enter your Groq API key'}
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          className="w-full pl-10 pr-20 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           disabled={isEnvKey}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-            isEnvKey
-              ? 'bg-gray-100 text-gray-500 cursor-not-allowed'
-              : isSaved
-              ? 'bg-green-100 text-green-700'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
-        >
-          <Save className="w-4 h-4" />
-          {isEnvKey ? 'Using ENV' : isSaved ? 'Saved' : 'Save'}
-        </button>
+        />
+        {!isEnvKey && (
+          <button
+            onClick={handleSaveKey}
+            disabled={!apiKey.trim() || isEnvKey}
+            className={`absolute right-2 top-2 px-3 py-1 rounded-md text-sm flex items-center gap-1
+              ${hasApiKey 
+                ? 'bg-green-100 text-green-700' 
+                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {hasApiKey ? (
+              <>
+                <Check className="w-4 h-4" />
+                Saved
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                Save
+              </>
+            )}
+          </button>
+        )}
       </div>
-      <p className="text-sm text-gray-500">
-        {isEnvKey 
-          ? 'Using API key from environment variables'
-          : 'Your API key is stored securely in your browser\'s local storage.'}
-      </p>
+      
+      {isEnvKey && (
+        <p className="text-sm text-gray-500">
+          Using API key from environment variables
+        </p>
+      )}
     </div>
   )
 }
