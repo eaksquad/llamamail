@@ -12,8 +12,8 @@ export default defineConfig(({ mode }) => {
       react(),
     ],
     define: {
-      // Use the new environment variable name
-      'import.meta.env.VITE_GROQ_API_KEY': JSON.stringify(env.GROQ_API_KEY || '')
+      // Directly use VITE_ prefixed environment variable
+      'import.meta.env.VITE_GROQ_API_KEY': JSON.stringify(env.VITE_GROQ_API_KEY || '')
     },
     server: {
       port: 3000,
