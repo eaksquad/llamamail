@@ -8,20 +8,17 @@ interface APIKeyInputProps {
 
 export function APIKeyInput({ hasApiKey, setHasApiKey }: APIKeyInputProps) {
   const [apiKey, setApiKey] = useState('')
-  const [isSaved, setIsSaved] = useState(false)
   const [isEnvKey, setIsEnvKey] = useState(false)
 
   useEffect(() => {
     const savedKey = localStorage.getItem('grog_api_key')
-    const envKey = import.meta.env.VITE_GROG_API_KEY
+    const envKey = import.meta.env.VITE_GROQ_API_KEY
 
     if (savedKey) {
       setApiKey(savedKey)
-      setIsSaved(true)
       setHasApiKey(true)
     } else if (envKey) {
       setApiKey(envKey)
-      setIsSaved(true)
       setIsEnvKey(true)
       setHasApiKey(true)
       localStorage.setItem('grog_api_key', envKey)
@@ -31,7 +28,6 @@ export function APIKeyInput({ hasApiKey, setHasApiKey }: APIKeyInputProps) {
   const handleSaveKey = () => {
     if (apiKey.trim()) {
       localStorage.setItem('grog_api_key', apiKey.trim())
-      setIsSaved(true)
       setIsEnvKey(false)
       setHasApiKey(true)
     }
