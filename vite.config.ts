@@ -14,6 +14,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     define: {
+      'process.env': {},
       'import.meta.env.VITE_GROQ_API_KEY': JSON.stringify(
         process.env.VITE_GROQ_API_KEY || env.VITE_GROQ_API_KEY || ''
       ),
@@ -21,15 +22,18 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
+      sourcemap: true,
       rollupOptions: {
         output: {
-          manualChunks(id) {
-            if (id.includes('node_modules')) {
-              return 'vendor';
-            }
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            groq: ['groq-sdk']
           }
         }
       }
+    },
+    optimizeDeps: {
+      include: ['react', 'react-dom']
     }
   };
 });
