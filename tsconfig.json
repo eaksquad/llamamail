@@ -12,7 +12,10 @@
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "noEmit": false,
+    "outDir": "./dist",
+    "declaration": false,
+    "sourceMap": true,
     "jsx": "react-jsx",
 
     /* Linting */
