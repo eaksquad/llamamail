@@ -18,6 +18,9 @@ export function SuggestionInput({ suggestion, setSuggestion }: SuggestionInputPr
           placeholder="Describe what you want the response to say (e.g., 'Politely decline the meeting invitation and suggest next week instead')..."
           value={suggestion}
           onChange={(e) => setSuggestion(e.target.value)}
+          spellCheck="true"
+          inputMode="text"
+          aria-label="Suggestion input field with voice dictation support"
         />
       </div>
       <p className="mt-1 text-sm text-gray-500">
