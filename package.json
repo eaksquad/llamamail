@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build --outDir dist",
-    "preview": "vite preview --outDir dist",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
     "vercel-build": "npm run build"
   },
   "dependencies": {
