@@ -27,7 +27,7 @@ function validateInput(input: string, maxLength: number = 1000): string {
 }
 
 // Mock response generator for development
-function generateMockResponse(tone: string, suggestion: string, emailThread: string): string {
+function generateMockResponse(tone: string, suggestion: string): string {
   const tones: {[key: string]: string} = {
     'professional': 'Here is a carefully crafted, professional response:',
     'friendly': 'Hey there! Here\'s a warm and friendly reply:',
@@ -37,12 +37,12 @@ function generateMockResponse(tone: string, suggestion: string, emailThread: str
 
   return `${tones[tone] || tones['professional']}
 
-Based on the context of "${suggestion}" and the email thread, here's a suggested response:
+Based on the context of "${suggestion}", here's a suggested response:
 
-Thank you for your email. I appreciate the details you've shared and will follow up accordingly.
+Thank you for your message. I appreciate you reaching out. I'll be happy to help with your request.
 
 Best regards,
-[Your Name]`;
+[Your name]`;
 }
 
 export async function generateEmailResponse(
@@ -69,7 +69,7 @@ export async function generateEmailResponse(
 
   if (isDevelopment || !effectiveApiKey) {
     console.warn('Using mock API response due to development mode or missing API key');
-    return generateMockResponse(sanitizedTone, sanitizedSuggestion, sanitizedEmailThread);
+    return generateMockResponse(sanitizedTone, sanitizedSuggestion);
   }
 
   try {
@@ -107,6 +107,6 @@ ${sanitizedEmailThread}`;
     console.warn('API Error:', error.message);
 
     // Fallback to mock response if API call fails
-    return generateMockResponse(sanitizedTone, sanitizedSuggestion, sanitizedEmailThread);
+    return generateMockResponse(sanitizedTone, sanitizedSuggestion);
   }
 }
