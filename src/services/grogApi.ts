@@ -116,3 +116,51 @@ ${sanitizedEmailThread}`;
     return generateMockResponse(sanitizedTone, sanitizedSuggestion);
   }
 }
+
+export type LengthAction = 'shorten' | 'lengthen';
+
+export async function adjustResponseLength(
+  currentResponse: string,
+  lengthAction: LengthAction,
+  apiKey: string,
+  model: string = "llama-3.3-70b-versatile"
+): Promise<string> {
+  const sanitizedResponse = validateInput(currentResponse, 10000);
+  
+  try {
+    const groq = new Groq({
+      apiKey,
+      dangerouslyAllowBrowser: true
+    });
+
+    const actionText = lengthAction === 'shorten' ? 'shorter' : 'longer';
+    const prompt = `Please rewrite the following email response to make it ${actionText}, while maintaining the same tone and context. Keep the essential information but ${lengthAction === 'shorten' ? 'be more concise' : 'add more detail and elaboration'}:\n\n${sanitizedResponse}`;
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: model,
+      temperature: 0.7,
+      max_tokens: 10000,
+    });
+
+    if (!completion.choices?.[0]?.message?.content) {
+      throw new ApiError('No response generated', 500, 'EMPTY_RESPONSE');
+    }
+
+    return sanitizeHtml(completion.choices[0].message.content, {
+      allowedTags: ['p', 'br', 'b', 'i', 'ul', 'ol', 'li'],
+    });
+  } catch (error: any) {
+    console.error('Length adjustment error:', error);
+    throw new ApiError(
+      'Failed to adjust response length. Please try again.',
+      error.statusCode || 500,
+      'LENGTH_ADJUSTMENT_ERROR'
+    );
+  }
+}

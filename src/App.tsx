@@ -5,7 +5,7 @@ import { ResponseOptions } from './components/ResponseOptions'
 import { GeneratedResponse } from './components/GeneratedResponse'
 import { APIKeyInput } from './components/APIKeyInput'
 import { SuggestionInput } from './components/SuggestionInput'
-import { generateEmailResponse, ApiError } from './services/grogApi'
+import { generateEmailResponse, adjustResponseLength, ApiError, type LengthAction } from './services/grogApi'
 import './index.css'
 
 interface ErrorState {
@@ -111,6 +111,34 @@ function App() {
     }
   }
 
+  const handleResponseLengthChange = async (lengthAction: LengthAction) => {
+    const apiKey = localStorage.getItem('grog_api_key') || import.meta.env.VITE_GROG_API_KEY
+    if (!apiKey) {
+      setError({ 
+        message: "Please add your API key in the settings section above.", 
+        type: 'error' 
+      })
+      return
+    }
+
+    setIsLoading(true)
+    setError(null)
+    
+    try {
+      const adjustedResponse = await adjustResponseLength(
+        response,
+        lengthAction,
+        apiKey,
+        model
+      )
+      setResponse(adjustedResponse)
+    } catch (err) {
+      handleError(err)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
       <div className="relative py-3 sm:max-w-xl sm:mx-auto w-full px-4 sm:px-0">
@@ -193,7 +221,11 @@ function App() {
                   ) : 'Generate Response'}
                 </button>
 
-                <GeneratedResponse response={response} />
+                <GeneratedResponse 
+                  response={response}
+                  onResponseLengthChange={handleResponseLengthChange}
+                  isLoading={isLoading}
+                />
 
                 {error && (
                   <div className={`flex items-center gap-2 p-4 rounded-lg ${
