@@ -53,8 +53,8 @@ export async function generateEmailResponse(
   model: string = "llama-3.3-70b-versatile"
 ): Promise<string> {
   // Validate inputs
-  const sanitizedEmailThread = validateInput(emailThread);
-  const sanitizedSuggestion = validateInput(suggestion);
+  const sanitizedEmailThread = validateInput(emailThread, 10000);
+  const sanitizedSuggestion = validateInput(suggestion, 5000);
   const sanitizedTone = validateInput(tone, 50);
 
   // Validate tone
