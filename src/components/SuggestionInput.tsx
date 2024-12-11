@@ -1,13 +1,12 @@
-import { Lightbulb } from 'lucide-react'
+import { Lightbulb, Trash2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 
 interface SuggestionInputProps {
   suggestion: string
   setSuggestion: (value: string) => void
-  children?: React.ReactNode
 }
 
-export function SuggestionInput({ suggestion, setSuggestion, children }: SuggestionInputProps) {
+export function SuggestionInput({ suggestion, setSuggestion }: SuggestionInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -42,6 +41,13 @@ export function SuggestionInput({ suggestion, setSuggestion, children }: Suggest
     setupSpeechRecognition()
   }, [setSuggestion])
 
+  const handleClearSuggestion = () => {
+    setSuggestion('');
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }
+
   return (
     <div className="w-full">
       <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -49,9 +55,19 @@ export function SuggestionInput({ suggestion, setSuggestion, children }: Suggest
       </label>
       <div className="relative">
         <Lightbulb className="absolute top-3 left-3 w-5 h-5 text-gray-400" />
+        {suggestion && (
+          <button
+            type="button"
+            onClick={handleClearSuggestion}
+            className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
+            aria-label="Clear suggestion"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        )}
         <textarea
           ref={textareaRef}
-          className="w-full h-24 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="w-full h-24 pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           placeholder="Describe what you want the response to say (e.g., 'Politely decline the meeting invitation and suggest next week instead')..."
           value={suggestion}
           onChange={(e) => setSuggestion(e.target.value)}
@@ -64,7 +80,6 @@ export function SuggestionInput({ suggestion, setSuggestion, children }: Suggest
       <p className="mt-1 text-sm text-gray-500">
         Guide the AI by describing what you want the response to convey
       </p>
-      {children}
     </div>
   )
 }
