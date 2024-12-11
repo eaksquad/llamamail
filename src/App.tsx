@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Mail, AlertCircle, Settings, ChevronDown, ChevronUp } from 'lucide-react'
+import { Mail, AlertCircle, Settings, ChevronDown, ChevronUp, Cpu } from 'lucide-react'
 import { EmailThread } from './components/EmailThread'
 import { ResponseOptions } from './components/ResponseOptions'
 import { GeneratedResponse } from './components/GeneratedResponse'
@@ -186,14 +186,17 @@ function App() {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Model
                       </label>
-                      <select
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                        className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                      >
-                        <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
-                        <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
-                      </select>
+                      <div className="relative">
+                        <Cpu className="absolute top-3 left-3 w-5 h-5 text-gray-400" />
+                        <select
+                          value={model}
+                          onChange={(e) => setModel(e.target.value)}
+                          className="mt-1 block w-full pl-10 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                        >
+                          <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                          <option value="mixtral-8x7b-32768">Mixtral 8x7B</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
