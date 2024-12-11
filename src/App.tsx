@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Mail, AlertCircle, Settings, ChevronDown, ChevronUp, Cpu } from 'lucide-react'
+import { Mail, AlertCircle, Settings, ChevronDown, ChevronUp, Cpu, X, Trash2 } from 'lucide-react'
 import { EmailThread } from './components/EmailThread'
 import { ResponseOptions } from './components/ResponseOptions'
 import { GeneratedResponse } from './components/GeneratedResponse'
@@ -171,6 +171,16 @@ function App() {
     }
   }
 
+  const clearSuggestion = () => {
+    setSuggestion('');
+    localStorage.removeItem('savedSuggestion');
+  };
+
+  const clearEmailThread = () => {
+    setEmailThread('');
+    localStorage.removeItem('savedEmailThread');
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
       <div className="relative py-3 sm:max-w-xl sm:mx-auto w-full px-4 sm:px-0">
@@ -222,12 +232,26 @@ function App() {
                 <SuggestionInput 
                   suggestion={suggestion}
                   setSuggestion={setSuggestion}
-                />
+                >
+                  <button
+                    onClick={clearSuggestion}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-gray-900"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </SuggestionInput>
 
                 <EmailThread 
                   emailThread={emailThread}
                   setEmailThread={setEmailThread}
-                />
+                >
+                  <button
+                    onClick={clearEmailThread}
+                    className="absolute top-3 right-3 text-gray-400 hover:text-gray-900"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </EmailThread>
                 
                 <ResponseOptions 
                   tone={tone}

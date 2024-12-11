@@ -4,9 +4,10 @@ import { useEffect, useRef } from 'react'
 interface SuggestionInputProps {
   suggestion: string
   setSuggestion: (value: string) => void
+  children?: React.ReactNode
 }
 
-export function SuggestionInput({ suggestion, setSuggestion }: SuggestionInputProps) {
+export function SuggestionInput({ suggestion, setSuggestion, children }: SuggestionInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -63,6 +64,7 @@ export function SuggestionInput({ suggestion, setSuggestion }: SuggestionInputPr
       <p className="mt-1 text-sm text-gray-500">
         Guide the AI by describing what you want the response to convey
       </p>
+      {children}
     </div>
   )
 }
