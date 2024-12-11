@@ -14,21 +14,39 @@ interface ErrorState {
 }
 
 function App() {
-  const [emailThread, setEmailThread] = useState('')
-  const [suggestion, setSuggestion] = useState('')
+  const [emailThread, setEmailThread] = useState(() => {
+    const savedEmailThread = localStorage.getItem('savedEmailThread');
+    return savedEmailThread || '';
+  });
+
+  const [suggestion, setSuggestion] = useState(() => {
+    const savedSuggestion = localStorage.getItem('savedSuggestion');
+    return savedSuggestion || '';
+  });
+
   const [tone, setTone] = useState(() => {
     const savedTone = localStorage.getItem('selectedTone');
     return savedTone || 'professional';
   });
+
   const [model, setModel] = useState(() => {
     const savedModel = localStorage.getItem('selectedModel');
     return savedModel || 'llama-3.3-70b-versatile';
   });
+
   const [response, setResponse] = useState('')
   const [hasApiKey, setHasApiKey] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<ErrorState | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem('savedEmailThread', emailThread);
+  }, [emailThread]);
+
+  useEffect(() => {
+    localStorage.setItem('savedSuggestion', suggestion);
+  }, [suggestion]);
 
   useEffect(() => {
     localStorage.setItem('selectedTone', tone);
