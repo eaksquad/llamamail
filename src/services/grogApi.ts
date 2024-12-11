@@ -58,7 +58,13 @@ export async function generateEmailResponse(
   const sanitizedTone = validateInput(tone, 50);
 
   // Validate tone
-  const validTones = ['professional', 'friendly', 'formal', 'casual'];
+  const validTones = [
+    'apologetic', 'assertive', 'casual', 'conciliatory', 'direct',
+    'empathetic', 'encouraging', 'formal', 'friendly', 'humorous',
+    'informative', 'inspirational', 'motivational', 'neutral',
+    'optimistic', 'professional', 'persuasive', 'respectful',
+    'serious', 'sincere', 'sympathetic', 'technical', 'warm'
+  ];
   if (!validTones.includes(sanitizedTone.toLowerCase())) {
     throw new ApiError('Invalid tone selected', 400, 'INVALID_TONE');
   }

@@ -21,10 +21,29 @@ export function ResponseOptions({ tone, setTone, model, setModel }: ResponseOpti
             value={tone}
             onChange={(e) => setTone(e.target.value)}
           >
-            <option value="professional">Professional</option>
-            <option value="friendly">Friendly</option>
-            <option value="formal">Formal</option>
+            <option value="apologetic">Apologetic</option>
+            <option value="assertive">Assertive</option>
             <option value="casual">Casual</option>
+            <option value="conciliatory">Conciliatory</option>
+            <option value="direct">Direct</option>
+            <option value="empathetic">Empathetic</option>
+            <option value="encouraging">Encouraging</option>
+            <option value="formal">Formal</option>
+            <option value="friendly">Friendly</option>
+            <option value="humorous">Humorous</option>
+            <option value="informative">Informative</option>
+            <option value="inspirational">Inspirational</option>
+            <option value="motivational">Motivational</option>
+            <option value="neutral">Neutral</option>
+            <option value="optimistic">Optimistic</option>
+            <option value="professional">Professional</option>
+            <option value="persuasive">Persuasive</option>
+            <option value="respectful">Respectful</option>
+            <option value="serious">Serious</option>
+            <option value="sincere">Sincere</option>
+            <option value="sympathetic">Sympathetic</option>
+            <option value="technical">Technical</option>
+            <option value="warm">Warm</option>
           </select>
         </div>
       </div>
