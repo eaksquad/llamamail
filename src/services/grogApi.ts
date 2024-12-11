@@ -74,7 +74,6 @@ export async function generateEmailResponse(
   const effectiveApiKey = apiKey || import.meta.env.VITE_GROQ_API_KEY;
 
   if (isDevelopment || !effectiveApiKey) {
-    console.warn('Using mock API response due to development mode or missing API key');
     return generateMockResponse(sanitizedTone, sanitizedSuggestion);
   }
 
@@ -91,16 +90,18 @@ ${sanitizedEmailThread}
 ONLY OUTPUT THE REWRITTEN RESPONSE.
 DO NOT INCLUDE THE SUBJECT LINE.`;
 
-    console.log('Current Model for Email Generation:', model);
     const completion = await groq.chat.completions.create({
       messages: [
+        {
+          role: "system",
+          content: 'You are a helpful email response generator.',
+        },
         {
           role: "user",
           content: prompt,
         },
       ],
       model: model,
-      temperature: 0.7,
       max_tokens: 10000,
     });
 
@@ -113,8 +114,6 @@ DO NOT INCLUDE THE SUBJECT LINE.`;
       allowedTags: ['p', 'br', 'b', 'i', 'ul', 'ol', 'li'],
     });
   } catch (error: any) {
-    console.warn('API Error:', error.message);
-
     // Fallback to mock response if API call fails
     return generateMockResponse(sanitizedTone, sanitizedSuggestion);
   }
@@ -139,16 +138,18 @@ export async function adjustResponseLength(
     const actionText = lengthAction === 'shorten' ? 'shorter' : 'longer';
     const prompt = `Please rewrite the following email response to make it ${actionText}, while maintaining the same tone and context. ONLY OUTPUT THE REWRITTEN RESPONSE. DO NOT INCLUDE THE SUBJECT LINE. Keep the essential information but ${lengthAction === 'shorten' ? 'be more concise' : 'add more detail and elaboration'}:\n\n${sanitizedResponse}`;
 
-    console.log('Current Model for Length Adjustment:', model);
     const completion = await groq.chat.completions.create({
       messages: [
+        {
+          role: "system",
+          content: 'You are a helpful email response generator.',
+        },
         {
           role: "user",
           content: prompt,
         },
       ],
       model: model,
-      temperature: 0.7,
       max_tokens: 10000,
     });
 
@@ -160,7 +161,6 @@ export async function adjustResponseLength(
       allowedTags: ['p', 'br', 'b', 'i', 'ul', 'ol', 'li'],
     });
   } catch (error: any) {
-    console.error('Length adjustment error:', error);
     throw new ApiError(
       'Failed to adjust response length. Please try again.',
       error.statusCode || 500,
