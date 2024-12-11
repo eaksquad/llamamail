@@ -16,13 +16,27 @@ interface ErrorState {
 function App() {
   const [emailThread, setEmailThread] = useState('')
   const [suggestion, setSuggestion] = useState('')
-  const [tone, setTone] = useState('professional')
-  const [model, setModel] = useState('llama-3.3-70b-versatile')
+  const [tone, setTone] = useState(() => {
+    const savedTone = localStorage.getItem('selectedTone');
+    return savedTone || 'professional';
+  });
+  const [model, setModel] = useState(() => {
+    const savedModel = localStorage.getItem('selectedModel');
+    return savedModel || 'llama-3.3-70b-versatile';
+  });
   const [response, setResponse] = useState('')
   const [hasApiKey, setHasApiKey] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<ErrorState | null>(null)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+
+  useEffect(() => {
+    localStorage.setItem('selectedTone', tone);
+  }, [tone]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedModel', model);
+  }, [model]);
 
   useEffect(() => {
     const apiKey = localStorage.getItem('grog_api_key')
