@@ -1,4 +1,5 @@
 import { MessageSquare, Trash2 } from 'lucide-react'
+import React from 'react'
 
 interface EmailThreadProps {
   emailThread: string
@@ -8,6 +9,10 @@ interface EmailThreadProps {
 export function EmailThread({ emailThread, setEmailThread }: EmailThreadProps) {
   const handleClearEmailThread = () => {
     setEmailThread('');
+  }
+
+  const handleEmailThreadChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setEmailThread(e.target.value);
   }
 
   return (
@@ -31,7 +36,7 @@ export function EmailThread({ emailThread, setEmailThread }: EmailThreadProps) {
           className="w-full h-48 pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           placeholder="Paste your email thread here..."
           value={emailThread}
-          onChange={(e) => setEmailThread(e.target.value)}
+          onChange={handleEmailThreadChange}
         />
       </div>
     </div>
