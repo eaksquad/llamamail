@@ -88,7 +88,8 @@ export async function generateEmailResponse(
 Context: ${sanitizedSuggestion}
 Original email thread:
 ${sanitizedEmailThread}
-ONLY OUTPUT THE REWRITTEN RESPONSE.`;
+ONLY OUTPUT THE REWRITTEN RESPONSE.
+DO NOT INCLUDE THE SUBJECT LINE.`;
 
     console.log('Current Model for Email Generation:', model);
     const completion = await groq.chat.completions.create({
@@ -136,7 +137,7 @@ export async function adjustResponseLength(
     });
 
     const actionText = lengthAction === 'shorten' ? 'shorter' : 'longer';
-    const prompt = `Please rewrite the following email response to make it ${actionText}, while maintaining the same tone and context. ONLY OUTPUT THE REWRITTEN RESPONSE. Keep the essential information but ${lengthAction === 'shorten' ? 'be more concise' : 'add more detail and elaboration'}:\n\n${sanitizedResponse}`;
+    const prompt = `Please rewrite the following email response to make it ${actionText}, while maintaining the same tone and context. ONLY OUTPUT THE REWRITTEN RESPONSE. DO NOT INCLUDE THE SUBJECT LINE. Keep the essential information but ${lengthAction === 'shorten' ? 'be more concise' : 'add more detail and elaboration'}:\n\n${sanitizedResponse}`;
 
     console.log('Current Model for Length Adjustment:', model);
     const completion = await groq.chat.completions.create({
