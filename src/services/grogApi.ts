@@ -223,9 +223,16 @@ const tokenBucket = new TokenBucket();
 
 // Utility function to estimate tokens in a string
 function estimateTokens(text: string): number {
-  // Rough estimate: 1 token ≈ 4 characters
-  return Math.ceil(text.length / 4);
+  // Use a more conservative ratio (1 token ≈ 3 characters)
+  return Math.ceil(text.length / 3);
 }
+
+// Token buffers
+const TOKEN_BUFFERS = {
+  SYSTEM_MESSAGE: 500,
+  RESPONSE: 800,
+  SAFETY_MARGIN: 200
+} as const;
 
 // API Configuration
 interface ApiConfig {
@@ -305,7 +312,8 @@ export const analyzeSentiment = async (
 ): Promise<string> => {
   log('analyzeSentiment', 'Starting analysis');
   
-  const sanitizedEmailThread = validateInput(emailThread, 10000);
+  // Reduce max length for sentiment analysis
+  const sanitizedEmailThread = validateInput(emailThread, 6000); // Reduced from 10000
   log('analyzeSentiment', 'Input sanitized', {
     originalLength: emailThread.length,
     sanitizedLength: sanitizedEmailThread.length
@@ -329,16 +337,18 @@ export const analyzeSentiment = async (
   log('analyzeSentiment', 'Cache miss', { cacheKey });
 
   try {
-    // Estimate token usage
+    // More conservative token estimation
     const estimatedTokens = 
       estimateTokens(sanitizedEmailThread) +
       estimateTokens(sentimentAnalysisPrompt) +
-      2000; // Buffer for system message and response
+      TOKEN_BUFFERS.SYSTEM_MESSAGE +
+      TOKEN_BUFFERS.RESPONSE;
 
     log('analyzeSentiment', 'Token estimation', {
       emailThreadTokens: estimateTokens(sanitizedEmailThread),
       promptTokens: estimateTokens(sentimentAnalysisPrompt),
-      buffer: 2000,
+      systemBuffer: TOKEN_BUFFERS.SYSTEM_MESSAGE,
+      responseBuffer: TOKEN_BUFFERS.RESPONSE,
       total: estimatedTokens
     });
 
@@ -420,8 +430,9 @@ export async function generateEmailResponse(
     suggestionLength: suggestion.length
   });
 
-  const sanitizedEmailThread = validateInput(emailThread, 10000);
-  const sanitizedSuggestion = validateInput(suggestion, 5000);
+  // Reduce max lengths
+  const sanitizedEmailThread = validateInput(emailThread, 6000); // Reduced from 10000
+  const sanitizedSuggestion = validateInput(suggestion, 2000); // Reduced from 5000
   const sanitizedTone = validateInput(tone, 50).toLowerCase();
 
   log('generateEmailResponse', 'Input sanitized', {
@@ -456,7 +467,7 @@ export async function generateEmailResponse(
   }
 
   try {
-    let sentimentAnalysis: string;
+    let sentimentAnalysis: string | null = null;
     try {
       // Try to get cached sentiment analysis first
       const cacheKey = `sentiment_${sanitizedEmailThread}`;
@@ -464,30 +475,33 @@ export async function generateEmailResponse(
       if (cachedAnalysis) {
         log('generateEmailResponse', 'Using cached sentiment analysis');
         sentimentAnalysis = cachedAnalysis;
-      } else {
-        log('generateEmailResponse', 'Requesting new sentiment analysis');
-        sentimentAnalysis = await analyzeSentiment(sanitizedEmailThread, effectiveApiKey, model);
+      }
+      // Skip sentiment analysis if not cached to save tokens
+      else {
+        log('generateEmailResponse', 'Skipping sentiment analysis to save tokens');
+        sentimentAnalysis = 'Sentiment analysis skipped to optimize token usage';
       }
     } catch (error) {
-      log('generateEmailResponse', 'Sentiment analysis failed', { error });
-      console.warn('Sentiment analysis failed, proceeding without it:', error);
+      log('generateEmailResponse', 'Sentiment analysis error', { error });
       sentimentAnalysis = 'Sentiment analysis unavailable';
     }
 
-    // Estimate token usage for email generation
+    // More conservative token estimation
     const estimatedTokens = 
       estimateTokens(sanitizedEmailThread) +
-      estimateTokens(sentimentAnalysis) +
+      estimateTokens(sentimentAnalysis || '') +
       estimateTokens(sanitizedSuggestion) +
       estimateTokens(systemMessage) +
-      1000; // Buffer for response
+      TOKEN_BUFFERS.SYSTEM_MESSAGE +
+      TOKEN_BUFFERS.RESPONSE +
+      TOKEN_BUFFERS.SAFETY_MARGIN;
 
     log('generateEmailResponse', 'Token estimation', {
       emailThreadTokens: estimateTokens(sanitizedEmailThread),
-      sentimentTokens: estimateTokens(sentimentAnalysis),
+      sentimentTokens: estimateTokens(sentimentAnalysis || ''),
       suggestionTokens: estimateTokens(sanitizedSuggestion),
       systemTokens: estimateTokens(systemMessage),
-      buffer: 1000,
+      buffers: TOKEN_BUFFERS,
       total: estimatedTokens
     });
 
