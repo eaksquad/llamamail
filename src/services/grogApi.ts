@@ -91,16 +91,18 @@ You will receive a user message containing:
 
 Using all of the above guidelines, produce the best possible email response.`;
 
-const sentimentAnalysisPrompt = `You are a communication analysis assistant. Analyze the following email thread and provide a structured output in the exact format below. Ensure all placeholders are replaced with the correct values and no extra commentary is included.
+const sentimentAnalysisPrompt = `You are a communication analysis assistant. Analyze the following email thread and provide a structured output in the exact format below. You must use the exact tags and format shown - do not modify the tags or add additional commentary.
 
-sentiment score: [number between -100 and +100]
-predominant tone is [tone description]
-urgency level: [low/medium/high]
-sender's intent is [short intent description]
-Primary emotions include [comma-separated emotions]
-suggested tone is [recommended tone]
-Key phrases to include are [comma-separated phrases]
-Phrases to avoid are [comma-separated phrases]
+[score]-50[/score]
+[tone]professional[/tone]
+[urgency]medium[/urgency]
+[intent]request information[/intent]
+[emotions]curiosity, concern[/emotions]
+[recommended_tone]empathetic[/recommended_tone]
+[phrases_to_include]acknowledge receipt, provide timeline[/phrases_to_include]
+[phrases_to_avoid]dismissive language, technical jargon[/phrases_to_avoid]
+
+Replace the example values between the tags with your analysis. Keep all values concise. The score must be between -100 and +100. Urgency must be low, medium, or high. All other values should be brief phrases. Do not add any text outside the tags.
 
 [Insert Email Thread Here]
 `;
@@ -108,21 +110,21 @@ Phrases to avoid are [comma-separated phrases]
 // Add utility function to format sentiment analysis
 function formatSentimentAnalysis(analysis: string): string {
   try {
-    // Extract key information using regex
-    const scoreMatch = analysis.match(/sentiment score.*?([+-]\d+)/i);
-    const toneMatch = analysis.match(/predominant tone is ([^,.]+)/i);
-    const urgencyMatch = analysis.match(/urgency level.*?(low|medium|high)/i);
-    const intentMatch = analysis.match(/sender's intent is ([^,.]+)/i);
-    const emotionsMatch = analysis.match(/Primary emotions include ([^.]+)/i);
-    const recommendedToneMatch = analysis.match(/suggested tone is ([^,.]+)/i);
-    const phrasesToIncludeMatch = analysis.match(/Key phrases to include are ([^.]+)/i);
-    const phrasesToAvoidMatch = analysis.match(/Phrases to avoid are ([^.]+)/i);
+    // Extract key information using regex with XML-like tags
+    const scoreMatch = analysis.match(/\[score\](.*?)\[\/score\]/i);
+    const toneMatch = analysis.match(/\[tone\](.*?)\[\/tone\]/i);
+    const urgencyMatch = analysis.match(/\[urgency\](.*?)\[\/urgency\]/i);
+    const intentMatch = analysis.match(/\[intent\](.*?)\[\/intent\]/i);
+    const emotionsMatch = analysis.match(/\[emotions\](.*?)\[\/emotions\]/i);
+    const recommendedToneMatch = analysis.match(/\[recommended_tone\](.*?)\[\/recommended_tone\]/i);
+    const phrasesToIncludeMatch = analysis.match(/\[phrases_to_include\](.*?)\[\/phrases_to_include\]/i);
+    const phrasesToAvoidMatch = analysis.match(/\[phrases_to_avoid\](.*?)\[\/phrases_to_avoid\]/i);
 
     // Build formatted output
     return `📊 **Sentiment Analysis**
 • Score: ${scoreMatch?.[1] || 'N/A'}
 • Tone: ${toneMatch?.[1]?.trim() || 'N/A'}
-• Urgency: ${urgencyMatch?.[1]?.toUpperCase() || 'N/A'}
+• Urgency: ${(urgencyMatch?.[1]?.trim() || 'N/A').toUpperCase()}
 • Intent: ${intentMatch?.[1]?.trim() || 'N/A'}
 • Emotions: ${emotionsMatch?.[1]?.trim() || 'N/A'}
 
