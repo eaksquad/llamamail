@@ -1,6 +1,12 @@
 import Groq from "groq-sdk";
 import sanitizeHtml from 'sanitize-html';
 
+// Logging utility
+function log(component: string, action: string, details?: any) {
+  const timestamp = new Date().toISOString();
+  console.log(`[${timestamp}] [${component}] ${action}`, details ? details : '');
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -144,6 +150,83 @@ Analyze the following email thread with this framework:
 [Insert Email Thread Here]
 ---`;
 
+// Token tracking
+interface TokenUsage {
+  timestamp: number;
+  tokens: number;
+}
+
+class TokenBucket {
+  private tokenUsage: TokenUsage[] = [];
+  private readonly windowMs = 60000; // 1 minute
+  private readonly maxTokens = 6000; // 6k tokens per minute
+
+  private cleanup() {
+    const now = Date.now();
+    const beforeCount = this.tokenUsage.length;
+    this.tokenUsage = this.tokenUsage.filter(
+      usage => now - usage.timestamp < this.windowMs
+    );
+    const afterCount = this.tokenUsage.length;
+    
+    if (beforeCount !== afterCount) {
+      log('TokenBucket', 'Cleanup', {
+        removed: beforeCount - afterCount,
+        remaining: afterCount
+      });
+    }
+  }
+
+  private getCurrentUsage(): number {
+    this.cleanup();
+    const usage = this.tokenUsage.reduce((sum, usage) => sum + usage.tokens, 0);
+    log('TokenBucket', 'Current Usage', {
+      totalTokens: usage,
+      requestCount: this.tokenUsage.length,
+      windowMs: this.windowMs
+    });
+    return usage;
+  }
+
+  async checkAndAddTokens(tokens: number): Promise<void> {
+    log('TokenBucket', 'Checking tokens', { requested: tokens });
+    this.cleanup();
+    const currentUsage = this.getCurrentUsage();
+    
+    if (currentUsage + tokens > this.maxTokens) {
+      const waitTime = this.windowMs - (Date.now() - this.tokenUsage[0].timestamp);
+      log('TokenBucket', 'Rate limit exceeded', {
+        currentUsage,
+        requested: tokens,
+        waitTime,
+        maxTokens: this.maxTokens
+      });
+      throw new ApiError(
+        `Rate limit exceeded. Please wait ${Math.ceil(waitTime / 1000)} seconds.`,
+        429,
+        ApiErrorType.RATE_LIMIT
+      );
+    }
+
+    this.tokenUsage.push({
+      timestamp: Date.now(),
+      tokens,
+    });
+    log('TokenBucket', 'Tokens added', {
+      added: tokens,
+      newTotal: this.getCurrentUsage()
+    });
+  }
+}
+
+const tokenBucket = new TokenBucket();
+
+// Utility function to estimate tokens in a string
+function estimateTokens(text: string): number {
+  // Rough estimate: 1 token ≈ 4 characters
+  return Math.ceil(text.length / 4);
+}
+
 // API Configuration
 interface ApiConfig {
   retryDelay: number;
@@ -182,16 +265,30 @@ async function makeApiRequest<T>(
   } catch (error: any) {
     if (error?.statusCode === 429 && retryCount < API_CONFIG.maxRetries) {
       await delay(API_CONFIG.retryDelay * (retryCount + 1));
+      log('makeApiRequest', 'Retrying API request', {
+        retryCount,
+        delay: API_CONFIG.retryDelay * (retryCount + 1)
+      });
       return makeApiRequest(apiCall, errorType, retryCount + 1);
     }
     
     if (error?.statusCode === 429) {
+      log('makeApiRequest', 'Rate limit exceeded', {
+        retryCount,
+        maxRetries: API_CONFIG.maxRetries
+      });
       throw new ApiError(
         'Rate limit exceeded. Please try again in a few moments.',
         429,
         ApiErrorType.RATE_LIMIT
       );
     }
+    
+    log('makeApiRequest', 'Error', {
+      type: error.type,
+      message: error.message,
+      statusCode: error.statusCode
+    });
     
     throw new ApiError(
       error.message || 'An error occurred during the API request',
@@ -206,22 +303,55 @@ export const analyzeSentiment = async (
   apiKey?: string,
   model: string = API_CONFIG.defaultModel
 ): Promise<string> => {
+  log('analyzeSentiment', 'Starting analysis');
+  
   const sanitizedEmailThread = validateInput(emailThread, 10000);
+  log('analyzeSentiment', 'Input sanitized', {
+    originalLength: emailThread.length,
+    sanitizedLength: sanitizedEmailThread.length
+  });
   
   const isDevelopment = import.meta.env.DEV;
   const effectiveApiKey = apiKey || import.meta.env.VITE_GROQ_API_KEY;
 
   if (isDevelopment || !effectiveApiKey) {
+    log('analyzeSentiment', 'Using mock response (development mode)');
     return "Mock Sentiment Analysis for Development";
   }
 
+  // Check cache first
+  const cacheKey = `sentiment_${sanitizedEmailThread}`;
+  const cachedAnalysis = localStorage.getItem(cacheKey);
+  if (cachedAnalysis) {
+    log('analyzeSentiment', 'Cache hit', { cacheKey });
+    return cachedAnalysis;
+  }
+  log('analyzeSentiment', 'Cache miss', { cacheKey });
+
   try {
+    // Estimate token usage
+    const estimatedTokens = 
+      estimateTokens(sanitizedEmailThread) +
+      estimateTokens(sentimentAnalysisPrompt) +
+      2000; // Buffer for system message and response
+
+    log('analyzeSentiment', 'Token estimation', {
+      emailThreadTokens: estimateTokens(sanitizedEmailThread),
+      promptTokens: estimateTokens(sentimentAnalysisPrompt),
+      buffer: 2000,
+      total: estimatedTokens
+    });
+
+    await tokenBucket.checkAndAddTokens(estimatedTokens);
+    log('analyzeSentiment', 'Token check passed');
+
     const groq = new Groq({
       apiKey: effectiveApiKey,
       dangerouslyAllowBrowser: true
     });
 
     const prompt = sentimentAnalysisPrompt.replace('[Insert Email Thread Here]', sanitizedEmailThread);
+    log('analyzeSentiment', 'Making API request');
 
     const completion = await makeApiRequest(
       () => groq.chat.completions.create({
@@ -241,7 +371,10 @@ export const analyzeSentiment = async (
       ApiErrorType.SENTIMENT_ANALYSIS
     );
 
+    log('analyzeSentiment', 'API request completed');
+
     if (!completion.choices?.[0]?.message?.content) {
+      log('analyzeSentiment', 'Empty response from API');
       throw new ApiError(
         'No sentiment analysis generated',
         500,
@@ -249,8 +382,20 @@ export const analyzeSentiment = async (
       );
     }
 
-    return completion.choices[0].message.content;
+    const analysis = completion.choices[0].message.content;
+    localStorage.setItem(cacheKey, analysis);
+    log('analyzeSentiment', 'Analysis cached', {
+      analysisLength: analysis.length
+    });
+    
+    return analysis;
   } catch (error: any) {
+    log('analyzeSentiment', 'Error', {
+      type: error.type,
+      message: error.message,
+      statusCode: error.statusCode
+    });
+    
     if (error.type === ApiErrorType.RATE_LIMIT) {
       throw error;
     }
@@ -269,9 +414,21 @@ export async function generateEmailResponse(
   apiKey?: string,
   model: string = API_CONFIG.defaultModel
 ): Promise<string> {
+  log('generateEmailResponse', 'Starting generation', {
+    toneRequested: tone,
+    threadLength: emailThread.length,
+    suggestionLength: suggestion.length
+  });
+
   const sanitizedEmailThread = validateInput(emailThread, 10000);
   const sanitizedSuggestion = validateInput(suggestion, 5000);
   const sanitizedTone = validateInput(tone, 50).toLowerCase();
+
+  log('generateEmailResponse', 'Input sanitized', {
+    threadLength: sanitizedEmailThread.length,
+    suggestionLength: sanitizedSuggestion.length,
+    tone: sanitizedTone
+  });
 
   const validTones = [
     'apologetic', 'assertive', 'casual', 'conciliatory', 'direct',
@@ -282,6 +439,7 @@ export async function generateEmailResponse(
   ] as const;
 
   if (!validTones.includes(sanitizedTone as typeof validTones[number])) {
+    log('generateEmailResponse', 'Invalid tone', { tone: sanitizedTone });
     throw new ApiError(
       'Invalid tone selected',
       400,
@@ -293,22 +451,53 @@ export async function generateEmailResponse(
   const effectiveApiKey = apiKey || import.meta.env.VITE_GROQ_API_KEY;
 
   if (isDevelopment || !effectiveApiKey) {
+    log('generateEmailResponse', 'Using mock response (development mode)');
     return generateMockResponse(sanitizedTone, sanitizedSuggestion);
   }
 
   try {
+    let sentimentAnalysis: string;
+    try {
+      // Try to get cached sentiment analysis first
+      const cacheKey = `sentiment_${sanitizedEmailThread}`;
+      const cachedAnalysis = localStorage.getItem(cacheKey);
+      if (cachedAnalysis) {
+        log('generateEmailResponse', 'Using cached sentiment analysis');
+        sentimentAnalysis = cachedAnalysis;
+      } else {
+        log('generateEmailResponse', 'Requesting new sentiment analysis');
+        sentimentAnalysis = await analyzeSentiment(sanitizedEmailThread, effectiveApiKey, model);
+      }
+    } catch (error) {
+      log('generateEmailResponse', 'Sentiment analysis failed', { error });
+      console.warn('Sentiment analysis failed, proceeding without it:', error);
+      sentimentAnalysis = 'Sentiment analysis unavailable';
+    }
+
+    // Estimate token usage for email generation
+    const estimatedTokens = 
+      estimateTokens(sanitizedEmailThread) +
+      estimateTokens(sentimentAnalysis) +
+      estimateTokens(sanitizedSuggestion) +
+      estimateTokens(systemMessage) +
+      1000; // Buffer for response
+
+    log('generateEmailResponse', 'Token estimation', {
+      emailThreadTokens: estimateTokens(sanitizedEmailThread),
+      sentimentTokens: estimateTokens(sentimentAnalysis),
+      suggestionTokens: estimateTokens(sanitizedSuggestion),
+      systemTokens: estimateTokens(systemMessage),
+      buffer: 1000,
+      total: estimatedTokens
+    });
+
+    await tokenBucket.checkAndAddTokens(estimatedTokens);
+    log('generateEmailResponse', 'Token check passed');
+
     const groq = new Groq({
       apiKey: effectiveApiKey,
       dangerouslyAllowBrowser: true
     });
-    
-    let sentimentAnalysis: string;
-    try {
-      sentimentAnalysis = await analyzeSentiment(sanitizedEmailThread, effectiveApiKey, model);
-    } catch (error) {
-      console.warn('Sentiment analysis failed, proceeding without it:', error);
-      sentimentAnalysis = 'Sentiment analysis unavailable';
-    }
 
     const prompt = `Please generate an email response with a ${sanitizedTone} tone.
 Context: ${sanitizedSuggestion}
@@ -318,6 +507,8 @@ Sentiment Analysis:
 ${sentimentAnalysis}
 ONLY OUTPUT THE REWRITTEN RESPONSE.
 DO NOT INCLUDE THE SUBJECT LINE.`;
+
+    log('generateEmailResponse', 'Making API request');
 
     const completion = await makeApiRequest(
       () => groq.chat.completions.create({
@@ -337,7 +528,10 @@ DO NOT INCLUDE THE SUBJECT LINE.`;
       ApiErrorType.SENTIMENT_ANALYSIS
     );
 
+    log('generateEmailResponse', 'API request completed');
+
     if (!completion.choices?.[0]?.message?.content) {
+      log('generateEmailResponse', 'Empty response from API');
       throw new ApiError(
         'No response generated',
         500,
@@ -345,14 +539,25 @@ DO NOT INCLUDE THE SUBJECT LINE.`;
       );
     }
 
-    return sanitizeHtml(completion.choices[0].message.content, {
+    const response = sanitizeHtml(completion.choices[0].message.content, {
       allowedTags: ['p', 'br', 'b', 'i', 'ul', 'ol', 'li'],
     });
+
+    log('generateEmailResponse', 'Response generated', {
+      responseLength: response.length
+    });
+
+    return response;
   } catch (error: any) {
+    log('generateEmailResponse', 'Error', {
+      type: error.type,
+      message: error.message,
+      statusCode: error.statusCode
+    });
+
     if (error.type === ApiErrorType.RATE_LIMIT) {
       throw error;
     }
-    // Fallback to mock response for other errors
     return generateMockResponse(sanitizedTone, sanitizedSuggestion);
   }
 }
@@ -365,6 +570,11 @@ export async function adjustResponseLength(
   apiKey: string,
   model: string = API_CONFIG.defaultModel
 ): Promise<string> {
+  log('adjustResponseLength', 'Starting adjustment', {
+    action: lengthAction,
+    responseLength: currentResponse.length
+  });
+  
   const sanitizedResponse = validateInput(currentResponse, 10000);
   
   try {
@@ -375,6 +585,8 @@ export async function adjustResponseLength(
 
     const actionText = lengthAction === 'shorten' ? 'shorter' : 'longer';
     const prompt = `Please rewrite the following email response to make it ${actionText}, while maintaining the same tone and context. ONLY OUTPUT THE REWRITTEN RESPONSE. DO NOT INCLUDE THE SUBJECT LINE. Keep the essential information but ${lengthAction === 'shorten' ? 'be more concise' : 'add more detail and elaboration'}:\n\n${sanitizedResponse}`;
+
+    log('adjustResponseLength', 'Making API request');
 
     const completion = await makeApiRequest(
       () => groq.chat.completions.create({
@@ -394,7 +606,10 @@ export async function adjustResponseLength(
       ApiErrorType.LENGTH_ADJUSTMENT
     );
 
+    log('adjustResponseLength', 'API request completed');
+
     if (!completion.choices?.[0]?.message?.content) {
+      log('adjustResponseLength', 'Empty response from API');
       throw new ApiError(
         'No response generated',
         500,
@@ -402,10 +617,23 @@ export async function adjustResponseLength(
       );
     }
 
-    return sanitizeHtml(completion.choices[0].message.content, {
+    const adjustedResponse = sanitizeHtml(completion.choices[0].message.content, {
       allowedTags: ['p', 'br', 'b', 'i', 'ul', 'ol', 'li'],
     });
+
+    log('adjustResponseLength', 'Response adjusted', {
+      originalLength: currentResponse.length,
+      adjustedLength: adjustedResponse.length
+    });
+
+    return adjustedResponse;
   } catch (error: any) {
+    log('adjustResponseLength', 'Error', {
+      type: error.type,
+      message: error.message,
+      statusCode: error.statusCode
+    });
+    
     throw new ApiError(
       'Failed to adjust response length. Please try again.',
       error.statusCode || 500,
