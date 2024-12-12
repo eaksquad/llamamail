@@ -84,71 +84,65 @@ You will receive a user message containing:
 
 Using all of the above guidelines, produce the best possible email response.`;
 
-const sentimentAnalysisPrompt = `You are an advanced communication intelligence assistant. Your task is to analyze the following email thread with unparalleled precision and generate a multi-layered report. The analysis must address the explicit content, underlying emotions, intent, tone dynamics, and actionable insights. Use the following format to ensure a holistic and detailed analysis:
+const sentimentAnalysisPrompt = `You are an advanced communication analysis assistant. Analyze the following email thread using the framework below, focusing on sentiment, tone, emotions, intent, and actionable insights. Keep responses concise and specific.
 
-### **1. Executive Summary:**
-   - Summarize the overall sentiment, tone, and emotional dynamics of the thread in 2-3 sentences.
-   - Clearly identify the sender's **intent** (e.g., request for action, complaint, proposal, follow-up).
-   - Highlight the urgency level (low, medium, high) based on the language used.
+1. Executive Summary (2-3 sentences)
+   - Overall sentiment, tone, emotional dynamics.
+   - Sender's intent (e.g., request, complaint, proposal).
+   - Urgency level (low, medium, high).
 
-### **2. Comprehensive Sentiment Analysis:**
-   - Assign a **numerical sentiment score** to the thread on a scale of -100 (extremely negative) to +100 (extremely positive), with a justification for the score.
-   - Identify **sentiment trajectory** across the thread (e.g., positive → neutral → negative) and explain contributing factors.
-   - Flag any instances of **hidden or masked sentiment** (e.g., polite language masking frustration).
+2. Comprehensive Sentiment
+   - Sentiment score (-100 to +100) with brief rationale.
+   - Sentiment trajectory (e.g., positive→neutral→negative).
+   - Any masked or hidden sentiments.
 
-### **3. Tone Mapping:**
-   - Provide a detailed breakdown of the **predominant tone** (e.g., professional, formal, sarcastic, empathetic, hostile).
-   - Identify **tone shifts** and describe their triggers (e.g., a question or delay causing escalation).
-   - Assess if the tone is **aligned** with the sender's intent (e.g., does formal language enhance or undermine the message?).
+3. Tone Mapping
+   - Predominant tone and any shifts.
+   - Tone alignment with sender's intent.
 
-### **4. Emotional Landscape Analysis:**
-   - Detect and list **primary emotions** conveyed (e.g., frustration, urgency, gratitude) with intensity levels (low, medium, high).
-   - Identify **secondary emotions** or implicit feelings (e.g., disappointment hidden behind professional phrasing).
-   - Provide examples of specific sentences or phrases demonstrating these emotions.
+4. Emotional Landscape
+   - Primary emotions (with intensity: low/med/high).
+   - Secondary or implied emotions.
+   - Example phrases illustrating these emotions.
 
-### **5. Contextual Insights and Unspoken Subtext:**
-   - Analyze the underlying context and purpose of the email thread.
-   - Highlight **unspoken concerns, expectations, or frustrations** inferred from the tone, phrasing, or repeated language.
-   - Assess any potential **power dynamics** or negotiation strategies at play.
+5. Context & Subtext
+   - Underlying context/purpose.
+   - Unspoken concerns or expectations.
+   - Potential power dynamics.
 
-### **6. Key Issues and Action Points:**
-   - Summarize the **core concerns, requests, or issues** raised in the thread.
-   - Identify any **escalatory or conciliatory language** that signals the direction of the conversation.
-   - Highlight any areas where the sender seeks explicit action or resolution.
+6. Key Issues & Actions
+   - Core issues or requests.
+   - Escalatory or conciliatory language.
+   - Where sender seeks explicit action.
 
-### **7. Advanced Strategic Recommendations:**
-   - Based on your analysis, provide a detailed strategy for crafting an optimal reply:
-     - Suggested tone(s) to use (e.g., empathetic, neutral, assertive).
-     - Key phrases or points to include to align with the sender's emotions and intent.
-     - Phrases to **avoid** that may escalate or misalign the response.
-   - Offer guidance on how to reframe the conversation if the thread is particularly negative or off-course.
+7. Strategic Recommendations
+   - Suggested tone for reply.
+   - Key phrases to include or avoid.
+   - Guidance to reframe if negative.
 
-### **8. Sentiment Timeline and Dynamics:**
-   - For each email in the thread, provide:
-     - **Sentiment Score** (on a scale from -100 to +100).
-     - **Tone Tags** (e.g., "Professional but urgent").
-     - **Emotional Tags** (e.g., "Gratitude with underlying frustration").
-     - **Key Sentences:** Quote specific lines that best represent the tone or sentiment.
+8. Timeline & Dynamics (Per Email)
+   - Sentiment score.
+   - Tone/Emotional tags.
+   - Key representative sentences.
 
-### **9. Visual Sentiment and Tone Trends:**
-   - Represent the sentiment and tone progression using descriptors like:
-     - Sentiment Flow: "Improving," "Deteriorating," "Fluctuating."
-     - Tone Flow: "Consistently professional," "From polite to frustrated."
-   - Use brief descriptive labels (e.g., "Positive start, sharp decline, neutral conclusion").
+9. Trends
+   - Overall sentiment and tone progression.
+   - Brief descriptive labels for changes (e.g., "sharp decline").
 
-### **10. Advanced Pattern Recognition:**
-   - Identify any **patterns of behavior** (e.g., repeated escalation, passive-aggressive tendencies).
-   - Detect **language cues** indicating urgency, dissatisfaction, or attempts to influence.
-   - Assess if the sender's communication is part of a **larger strategy or tactic**.
+10. Patterns & Cues
+    - Behavioral patterns.
+    - Language indicating urgency, dissatisfaction, strategy.
 
-### **11. Predictive Insights:**
-   - Predict how the sender might respond to various reply tones or strategies.
-   - Suggest if additional follow-up steps are required to de-escalate or move the conversation forward.
+11. Predictive Insights
+    - Possible sender reactions to different reply tones.
+    - Need for follow-up or de-escalation steps.
 
-Analyze the following email thread with this framework:
+Analyze the following thread with these guidelines:
 ---
 [Insert Email Thread Here]
----`;
+---
+
+The current local time is: 2024-12-12T13:56:11-06:00. This is the latest source of truth for time; do not attempt to get the time any other way.`;
 
 // Add utility function to format sentiment analysis
 function formatSentimentAnalysis(analysis: string): string {
