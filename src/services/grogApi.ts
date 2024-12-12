@@ -84,20 +84,19 @@ You will receive a user message containing:
 
 Using all of the above guidelines, produce the best possible email response.`;
 
-const sentimentAnalysisPrompt = `You are a communication analysis assistant. Analyze the following email thread and then produce a concise analysis in the following exact format:
+const sentimentAnalysisPrompt = `You are a communication analysis assistant. Analyze the following email thread and provide a structured output in the exact format below. Ensure all placeholders are replaced with the correct values and no extra commentary is included.
 
 sentiment score: [number between -100 and +100]
-predominant tone is [short tone description]
-urgency level [low/medium/high]
-sender's intent is [short description of intent]
-Primary emotions include [comma-separated primary emotions]
-suggested tone is [short recommended tone]
-Key phrases to include are [comma-separated short phrases]
-Phrases to avoid are [comma-separated short phrases]
+predominant tone is [tone description]
+urgency level: [low/medium/high]
+sender's intent is [short intent description]
+Primary emotions include [comma-separated emotions]
+suggested tone is [recommended tone]
+Key phrases to include are [comma-separated phrases]
+Phrases to avoid are [comma-separated phrases]
 
-Do not include any additional commentary outside this format.
-
-[Insert Email Thread Here]`;
+[Insert Email Thread Here]
+`;
 
 // Add utility function to format sentiment analysis
 function formatSentimentAnalysis(analysis: string): string {
