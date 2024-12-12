@@ -150,6 +150,40 @@ Analyze the following email thread with this framework:
 [Insert Email Thread Here]
 ---`;
 
+// Add utility function to format sentiment analysis
+function formatSentimentAnalysis(analysis: string): string {
+  try {
+    // Extract key information using regex
+    const scoreMatch = analysis.match(/sentiment score.*?([+-]\d+)/i);
+    const toneMatch = analysis.match(/predominant tone is ([^,.]+)/i);
+    const urgencyMatch = analysis.match(/urgency level.*?(low|medium|high)/i);
+    const intentMatch = analysis.match(/sender's intent is ([^,.]+)/i);
+    const emotionsMatch = analysis.match(/Primary emotions.*?include ([^.]+)/i);
+    const recommendedToneMatch = analysis.match(/suggested tone is ([^,.]+)/i);
+    const phrasesToIncludeMatch = analysis.match(/Key phrases to include are ([^.]+)/i);
+    const phrasesToAvoidMatch = analysis.match(/Phrases to avoid are ([^.]+)/i);
+
+    // Build formatted output
+    return `📊 **Sentiment Overview**
+• Score: ${scoreMatch?.[1] || 'N/A'}
+• Tone: ${toneMatch?.[1]?.trim() || 'N/A'}
+• Urgency: ${urgencyMatch?.[1]?.toUpperCase() || 'N/A'}
+
+🎯 **Key Points**
+• Intent: ${intentMatch?.[1]?.trim() || 'N/A'}
+• Emotions: ${emotionsMatch?.[1]?.trim() || 'N/A'}
+
+💡 **Recommendations**
+• Reply Tone: ${recommendedToneMatch?.[1]?.trim() || 'N/A'}
+• Include: ${phrasesToIncludeMatch?.[1]?.trim() || 'N/A'}
+• Avoid: ${phrasesToAvoidMatch?.[1]?.trim() || 'N/A'}`;
+  } catch (error) {
+    log('formatSentimentAnalysis', 'Error formatting analysis', { error });
+    // Return original analysis if formatting fails
+    return analysis;
+  }
+}
+
 // Token tracking
 interface TokenUsage {
   timestamp: number;
@@ -312,8 +346,7 @@ export const analyzeSentiment = async (
 ): Promise<string> => {
   log('analyzeSentiment', 'Starting analysis');
   
-  // Reduce max length for sentiment analysis
-  const sanitizedEmailThread = validateInput(emailThread, 6000); // Reduced from 10000
+  const sanitizedEmailThread = validateInput(emailThread, 6000);
   log('analyzeSentiment', 'Input sanitized', {
     originalLength: emailThread.length,
     sanitizedLength: sanitizedEmailThread.length
@@ -324,7 +357,14 @@ export const analyzeSentiment = async (
 
   if (isDevelopment || !effectiveApiKey) {
     log('analyzeSentiment', 'Using mock response (development mode)');
-    return "Mock Sentiment Analysis for Development";
+    return formatSentimentAnalysis(`
+      The overall sentiment score is +50. The predominant tone is professional.
+      The sender's intent is to request information. Urgency level is medium.
+      Primary emotions include curiosity and interest.
+      The suggested tone is friendly and professional.
+      Key phrases to include are acknowledgments and clear explanations.
+      Phrases to avoid are technical jargon and dismissive language.
+    `);
   }
 
   // Check cache first
@@ -332,7 +372,7 @@ export const analyzeSentiment = async (
   const cachedAnalysis = localStorage.getItem(cacheKey);
   if (cachedAnalysis) {
     log('analyzeSentiment', 'Cache hit', { cacheKey });
-    return cachedAnalysis;
+    return formatSentimentAnalysis(cachedAnalysis);
   }
   log('analyzeSentiment', 'Cache miss', { cacheKey });
 
@@ -398,7 +438,7 @@ export const analyzeSentiment = async (
       analysisLength: analysis.length
     });
     
-    return analysis;
+    return formatSentimentAnalysis(analysis);
   } catch (error: any) {
     log('analyzeSentiment', 'Error', {
       type: error.type,
