@@ -113,23 +113,21 @@ function formatSentimentAnalysis(analysis: string): string {
     const toneMatch = analysis.match(/predominant tone is ([^,.]+)/i);
     const urgencyMatch = analysis.match(/urgency level.*?(low|medium|high)/i);
     const intentMatch = analysis.match(/sender's intent is ([^,.]+)/i);
-    const emotionsMatch = analysis.match(/Primary emotions.*?include ([^.]+)/i);
+    const emotionsMatch = analysis.match(/Primary emotions include ([^.]+)/i);
     const recommendedToneMatch = analysis.match(/suggested tone is ([^,.]+)/i);
     const phrasesToIncludeMatch = analysis.match(/Key phrases to include are ([^.]+)/i);
     const phrasesToAvoidMatch = analysis.match(/Phrases to avoid are ([^.]+)/i);
 
     // Build formatted output
-    return `📊 **Sentiment Overview**
+    return `📊 **Sentiment Analysis**
 • Score: ${scoreMatch?.[1] || 'N/A'}
 • Tone: ${toneMatch?.[1]?.trim() || 'N/A'}
 • Urgency: ${urgencyMatch?.[1]?.toUpperCase() || 'N/A'}
-
-🎯 **Key Points**
 • Intent: ${intentMatch?.[1]?.trim() || 'N/A'}
 • Emotions: ${emotionsMatch?.[1]?.trim() || 'N/A'}
 
-💡 **Recommendations**
-• Reply Tone: ${recommendedToneMatch?.[1]?.trim() || 'N/A'}
+💡 **Response Guidance**
+• Recommended Tone: ${recommendedToneMatch?.[1]?.trim() || 'N/A'}
 • Include: ${phrasesToIncludeMatch?.[1]?.trim() || 'N/A'}
 • Avoid: ${phrasesToAvoidMatch?.[1]?.trim() || 'N/A'}`;
   } catch (error) {
