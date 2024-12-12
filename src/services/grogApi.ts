@@ -78,6 +78,67 @@ You will receive a user message containing:
 
 Using all of the above guidelines, produce the best possible email response.`;
 
+const sentimentAnalysisPrompt = `You are an advanced communication intelligence assistant. Your task is to analyze the following email thread with unparalleled precision and generate a multi-layered report. The analysis must address the explicit content, underlying emotions, intent, tone dynamics, and actionable insights. Use the following format to ensure a holistic and detailed analysis:
+
+[Previous sections of the prompt...]
+
+Analyze the following email thread with this framework:
+---
+[Insert Email Thread Here]
+---`;
+
+export async function analyzeSentiment(
+  emailThread: string,
+  apiKey?: string,
+  model: string = "llama-3.3-70b-versatile"
+): Promise<string> {
+  const sanitizedEmailThread = validateInput(emailThread, 10000);
+  
+  // Check if we're in a development environment or lack a real API key
+  const isDevelopment = import.meta.env.DEV;
+  const effectiveApiKey = apiKey || import.meta.env.VITE_GROQ_API_KEY;
+
+  if (isDevelopment || !effectiveApiKey) {
+    return "Mock Sentiment Analysis for Development";
+  }
+
+  try {
+    const groq = new Groq({
+      apiKey: effectiveApiKey,
+      dangerouslyAllowBrowser: true
+    });
+
+    const prompt = sentimentAnalysisPrompt.replace('[Insert Email Thread Here]', sanitizedEmailThread);
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "You are an advanced communication intelligence assistant specializing in email sentiment analysis.",
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      model: model,
+      max_tokens: 10000,
+    });
+
+    if (!completion.choices?.[0]?.message?.content) {
+      throw new ApiError('No sentiment analysis generated', 500, 'EMPTY_RESPONSE');
+    }
+
+    return completion.choices[0].message.content;
+  } catch (error: any) {
+    throw new ApiError(
+      'Failed to analyze sentiment. Please try again.',
+      error.statusCode || 500,
+      'SENTIMENT_ANALYSIS_ERROR'
+    );
+  }
+}
+
 export async function generateEmailResponse(
   emailThread: string,
   suggestion: string,
@@ -116,10 +177,15 @@ export async function generateEmailResponse(
       dangerouslyAllowBrowser: true // Use with extreme caution
     });
     
+    // Perform sentiment analysis
+    const sentimentAnalysis = await analyzeSentiment(sanitizedEmailThread, effectiveApiKey, model);
+
     const prompt = `Please generate an email response with a ${sanitizedTone} tone.
 Context: ${sanitizedSuggestion}
 Original email thread:
 ${sanitizedEmailThread}
+Sentiment Analysis:
+${sentimentAnalysis}
 ONLY OUTPUT THE REWRITTEN RESPONSE.
 DO NOT INCLUDE THE SUBJECT LINE.`;
 
