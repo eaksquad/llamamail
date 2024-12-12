@@ -139,16 +139,72 @@ function formatSentimentAnalysis(analysis: string): string {
   }
 }
 
-// Token tracking
-interface TokenUsage {
-  timestamp: number;
-  tokens: number;
+// Improved token estimation using character classes
+function estimateTokens(text: string): number {
+  // Count different types of tokens
+  const words = text.split(/\s+/).length;
+  const numbers = (text.match(/\d+/g) || []).length;
+  const specialChars = (text.match(/[^a-zA-Z0-9\s]/g) || []).length;
+  
+  // Apply weighted calculation
+  return Math.ceil(words * 1.3 + numbers * 0.5 + specialChars * 0.5);
 }
 
+// Enhanced cache key generation
+function generateCacheKey(text: string): string {
+  // Normalize text by removing extra spaces and converting to lowercase
+  const normalized = text.toLowerCase().replace(/\s+/g, ' ').trim();
+  // Create a hash of the normalized text
+  return `sentiment_${hashString(normalized)}`;
+}
+
+// Simple string hashing function
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(36);
+}
+
+// Enhanced TokenBucket with sliding window
 class TokenBucket {
   private tokenUsage: TokenUsage[] = [];
   private readonly windowMs = 60000; // 1 minute
   private readonly maxTokens = 6000; // 6k tokens per minute
+  private requestQueue: Array<() => Promise<void>> = [];
+  private isProcessingQueue = false;
+
+  constructor() {
+    // Load persisted token usage
+    this.loadPersistedUsage();
+    // Start periodic cleanup
+    setInterval(() => this.cleanup(), 5000);
+  }
+
+  private loadPersistedUsage() {
+    try {
+      const saved = localStorage.getItem('tokenUsage');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        this.tokenUsage = parsed.filter((usage: TokenUsage) => 
+          Date.now() - usage.timestamp < this.windowMs
+        );
+      }
+    } catch (error) {
+      log('TokenBucket', 'Error loading persisted usage', { error });
+    }
+  }
+
+  private persistUsage() {
+    try {
+      localStorage.setItem('tokenUsage', JSON.stringify(this.tokenUsage));
+    } catch (error) {
+      log('TokenBucket', 'Error persisting usage', { error });
+    }
+  }
 
   private cleanup() {
     const now = Date.now();
@@ -163,57 +219,66 @@ class TokenBucket {
         removed: beforeCount - afterCount,
         remaining: afterCount
       });
+      this.persistUsage();
+      this.processQueue();
     }
   }
 
   private getCurrentUsage(): number {
     this.cleanup();
-    const usage = this.tokenUsage.reduce((sum, usage) => sum + usage.tokens, 0);
-    log('TokenBucket', 'Current Usage', {
-      totalTokens: usage,
-      requestCount: this.tokenUsage.length,
-      windowMs: this.windowMs
-    });
-    return usage;
+    return this.tokenUsage.reduce((sum, usage) => sum + usage.tokens, 0);
+  }
+
+  private async processQueue() {
+    if (this.isProcessingQueue || this.requestQueue.length === 0) return;
+    
+    this.isProcessingQueue = true;
+    while (this.requestQueue.length > 0) {
+      const request = this.requestQueue[0];
+      try {
+        await request();
+        this.requestQueue.shift();
+      } catch (error) {
+        if (error instanceof ApiError && error.type === ApiErrorType.RATE_LIMIT) {
+          // Wait before trying again
+          await delay(1000);
+          continue;
+        }
+        // For other errors, remove from queue and continue
+        this.requestQueue.shift();
+      }
+    }
+    this.isProcessingQueue = false;
   }
 
   async checkAndAddTokens(tokens: number): Promise<void> {
-    log('TokenBucket', 'Checking tokens', { requested: tokens });
-    this.cleanup();
-    const currentUsage = this.getCurrentUsage();
-    
-    if (currentUsage + tokens > this.maxTokens) {
-      const waitTime = this.windowMs - (Date.now() - this.tokenUsage[0].timestamp);
-      log('TokenBucket', 'Rate limit exceeded', {
-        currentUsage,
-        requested: tokens,
-        waitTime,
-        maxTokens: this.maxTokens
-      });
-      throw new ApiError(
-        `Rate limit exceeded. Please wait ${Math.ceil(waitTime / 1000)} seconds.`,
-        429,
-        ApiErrorType.RATE_LIMIT
-      );
-    }
+    return new Promise((resolve, reject) => {
+      const request = async () => {
+        const currentUsage = this.getCurrentUsage();
+        if (currentUsage + tokens > this.maxTokens) {
+          throw new ApiError(
+            'Rate limit exceeded',
+            429,
+            ApiErrorType.RATE_LIMIT
+          );
+        }
+        this.tokenUsage.push({ timestamp: Date.now(), tokens });
+        this.persistUsage();
+        resolve();
+      };
 
-    this.tokenUsage.push({
-      timestamp: Date.now(),
-      tokens,
-    });
-    log('TokenBucket', 'Tokens added', {
-      added: tokens,
-      newTotal: this.getCurrentUsage()
+      this.requestQueue.push(request);
+      this.processQueue().catch(reject);
     });
   }
 }
 
 const tokenBucket = new TokenBucket();
 
-// Utility function to estimate tokens in a string
-function estimateTokens(text: string): number {
-  // Use a more conservative ratio (1 token ≈ 3 characters)
-  return Math.ceil(text.length / 3);
+// Token tracking
+interface TokenUsage {
+  timestamp: number;
+  tokens: number;
 }
 
 // Token buffers
@@ -323,7 +388,7 @@ export const analyzeSentiment = async (
   }
 
   // Check cache first
-  const cacheKey = `sentiment_${sanitizedEmailThread}`;
+  const cacheKey = generateCacheKey(sanitizedEmailThread);
   const cachedAnalysis = localStorage.getItem(cacheKey);
   if (cachedAnalysis) {
     log('analyzeSentiment', 'Cache hit', { cacheKey });
@@ -465,7 +530,7 @@ export async function generateEmailResponse(
     let sentimentAnalysis: string | null = null;
     try {
       // Try to get cached sentiment analysis first
-      const cacheKey = `sentiment_${sanitizedEmailThread}`;
+      const cacheKey = generateCacheKey(sanitizedEmailThread);
       const cachedAnalysis = localStorage.getItem(cacheKey);
       if (cachedAnalysis) {
         log('generateEmailResponse', 'Using cached sentiment analysis');
